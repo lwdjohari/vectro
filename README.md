@@ -18,7 +18,10 @@ Vectro is a production-grade networking framework for **C++17**, offering:
 - **Zero-copy message buffers** using allocator-aware design
 - Plugin-driven lifecycle: intercept, tag, rate limit, heartbeat
 - Backpressure control, graceful/force shutdown, timeouts
-- TLS-ready with WebSocket (WSS) and UDP pseudo-session support
+- TLS-ready
+- TCP Server & Client
+- WebSocket (WS/WSS) Server & Client
+- UDP with pseudo-session support
 
 ---
 
@@ -65,7 +68,7 @@ Vectro is a production-grade networking framework for **C++17**, offering:
 | SessionTagger     | ACL/priority labeling          | On connect |
 | ControllerHook    | Metrics/alert hooks            | Global |
 
-### 5. Observability & Dev UX
+### 5. Observability
 
 | Feature                    | Status |
 |----------------------------|--------|
@@ -82,8 +85,8 @@ Vectro is a production-grade networking framework for **C++17**, offering:
 |----------------------------|--------|
 | Long-running client/server | ✅     |
 | Allocator integration      | ✅     |
-| TLS cert reload (planned) | ✅     |
-| Plugin                     | ✅     |
+| TLS cert reload            | ✅     |
+| Plugin (Pluggable Module)  | ✅     |
 | Scoped backpressure toggle | ✅     |
 
 ---
@@ -110,11 +113,11 @@ Vectro is a production-grade networking framework for **C++17**, offering:
 
 ## Who Should Use This?
 
-- **Enterprise** building real-time APIs, gateways, paltform or session routers
+- **Enterprise**: building real-time APIs, gateways, platform or session routers
 - **Fintech**: needing secure TLS transport with timeout and backpressure
 - **IoT platforms**: hi-number of devices and multiple protocols
 - **Game servers**: high-frequency, low-latency transport across multiple clients
-- **structured session lifecycle, plugin control, and raw message access**
+- **Structured session lifecycle, plugin control, and raw message access**
 
 ---
 
@@ -124,7 +127,8 @@ Vectro is a production-grade networking framework for **C++17**, offering:
 
 - C++17 compiler
 - CMake 3.14+
-- Asio (standalone or via Boost)
+- Boost Asio (Header Only)
+- Boost Beast (Header Only)
 - OpenSSL
 - Abseil
 
@@ -195,14 +199,6 @@ server->AddPort(8443, bundle);
 server->Start();
 ```
 
-### UDP Client
-
-```cpp
-auto client = std::make_shared<UdpClient<>>(io, "127.0.0.1", 9000);
-client->SetPluginBundle(bundle);
-client->Start();
-client->Send(InternalMessage::FromRaw("hello", "init"));
-```
 
 ---
 
