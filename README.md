@@ -184,9 +184,9 @@ server->Start();
 ### WebSocket Server
 
 ```cpp
-asio::ssl::context ssl_ctx(asio::ssl::context::tlsv12);
-ssl_ctx.use_certificate_chain_file("cert.pem");
-ssl_ctx.use_private_key_file("key.pem", asio::ssl::context::pem);
+auto tls = std::make_shared<DefaultReloadableTlsContextProvider>(
+    "fullchain.pem", "privkey.pem"  // Let's Encrypt live cert files
+);
 
 auto controller = std::make_shared<Controller<WsTlsSession>>(io.get_executor());
 auto server = std::make_shared<VtTcpServer<WsTlsStream>>(io, controller, WebSocketFramerFactory);
@@ -195,7 +195,7 @@ PluginBundle bundle;
 bundle.Set(PluginKeys::kInterceptor, std::make_shared<MyLogger>());
 bundle.Set(PluginKeys::kHeartbeatEmitter, std::make_shared<MyPinger>());
 
-server->AddPort(8443, bundle);
+server->AddPort(8443, bundle, tls);
 server->Start();
 ```
 
