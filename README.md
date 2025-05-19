@@ -155,7 +155,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(third_party/vectro build-vectro)
 
-add_executable(PROJECT src/natmq_gateway/main.cc)
+add_executable(PROJECT src/main.cc)
 target_link_libraries(PROJECT
     PRIVATE
         vectro::vectro
