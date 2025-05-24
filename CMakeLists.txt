@@ -49,7 +49,7 @@ endif()
 # Manually defined sources
 set(VECTRO_SOURCES
   src/vectro/frame/raw_buffer.cc
-#   src/vectro/frame/internal_message.cc
+  src/vectro/frame/internal_message.cc
 #   src/vectro/plugin/plugin_bundle.cc
 #   src/vectro/tls/reloadable_tls_context_provider.cc
 #   src/vectro/tls/default_tls_client_context_provider.cc
