@@ -18,7 +18,10 @@ Vectro is a production-grade networking framework for **C++17**, offering:
 - **Zero-copy message buffers** using allocator-aware design
 - Plugin-driven lifecycle: intercept, tag, rate limit, heartbeat
 - Backpressure control, graceful/force shutdown, timeouts
-- TLS-ready with WebSocket (WSS) and UDP pseudo-session support
+- TLS-ready
+- TCP Server & Client
+- WebSocket (WS/WSS) Server & Client
+- UDP with pseudo-session support
 
 ---
 
@@ -65,7 +68,7 @@ Vectro is a production-grade networking framework for **C++17**, offering:
 | SessionTagger     | ACL/priority labeling          | On connect |
 | ControllerHook    | Metrics/alert hooks            | Global |
 
-### 5. Observability & Dev UX
+### 5. Observability
 
 | Feature                    | Status |
 |----------------------------|--------|
@@ -82,8 +85,8 @@ Vectro is a production-grade networking framework for **C++17**, offering:
 |----------------------------|--------|
 | Long-running client/server | ✅     |
 | Allocator integration      | ✅     |
-| TLS cert reload (planned) | ✅     |
-| Plugin                     | ✅     |
+| TLS cert reload            | ✅     |
+| Plugin (Pluggable Module)  | ✅     |
 | Scoped backpressure toggle | ✅     |
 
 ---
@@ -110,11 +113,11 @@ Vectro is a production-grade networking framework for **C++17**, offering:
 
 ## Who Should Use This?
 
-- **Enterprise** building real-time APIs, gateways, paltform or session routers
+- **Enterprise**: building real-time APIs, gateways, platform or session routers
 - **Fintech**: needing secure TLS transport with timeout and backpressure
 - **IoT platforms**: hi-number of devices and multiple protocols
 - **Game servers**: high-frequency, low-latency transport across multiple clients
-- **structured session lifecycle, plugin control, and raw message access**
+- **Structured session lifecycle, plugin control, and raw message access**
 
 ---
 
@@ -124,7 +127,8 @@ Vectro is a production-grade networking framework for **C++17**, offering:
 
 - C++17 compiler
 - CMake 3.14+
-- Asio (standalone or via Boost)
+- Boost Asio (Header Only)
+- Boost Beast (Header Only)
 - OpenSSL
 - Abseil
 
@@ -151,7 +155,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_subdirectory(third_party/vectro build-vectro)
 
-add_executable(PROJECT src/natmq_gateway/main.cc)
+add_executable(PROJECT src/main.cc)
 target_link_libraries(PROJECT
     PRIVATE
         vectro::vectro
@@ -180,9 +184,9 @@ server->Start();
 ### WebSocket Server
 
 ```cpp
-asio::ssl::context ssl_ctx(asio::ssl::context::tlsv12);
-ssl_ctx.use_certificate_chain_file("cert.pem");
-ssl_ctx.use_private_key_file("key.pem", asio::ssl::context::pem);
+auto tls = std::make_shared<DefaultReloadableTlsContextProvider>(
+    "fullchain.pem", "privkey.pem"  // Let's Encrypt live cert files
+);
 
 auto controller = std::make_shared<Controller<WsTlsSession>>(io.get_executor());
 auto server = std::make_shared<VtTcpServer<WsTlsStream>>(io, controller, WebSocketFramerFactory);
@@ -191,18 +195,10 @@ PluginBundle bundle;
 bundle.Set(PluginKeys::kInterceptor, std::make_shared<MyLogger>());
 bundle.Set(PluginKeys::kHeartbeatEmitter, std::make_shared<MyPinger>());
 
-server->AddPort(8443, bundle);
+server->AddPort(8443, bundle, tls);
 server->Start();
 ```
 
-### UDP Client
-
-```cpp
-auto client = std::make_shared<UdpClient<>>(io, "127.0.0.1", 9000);
-client->SetPluginBundle(bundle);
-client->Start();
-client->Send(InternalMessage::FromRaw("hello", "init"));
-```
 
 ---
 
