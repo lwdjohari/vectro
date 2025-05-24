@@ -70,6 +70,8 @@ target_link_libraries(${PROJECT_NAME}
     PUBLIC
         absl::base
         absl::algorithm
+        absl::time
+        absl::strings
         absl::synchronization # absl::Mutex & other concurrency primitives 
     PRIVATE      
     )

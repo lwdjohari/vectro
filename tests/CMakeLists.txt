@@ -4,6 +4,7 @@ project(vectro-unit-test CXX)
 # Set the path to the directory containing your test source files
 set(TEST_SOURCES
     frame/rawbuffer/rawbuffer_test.cc
+    pool/task_multi_processor/task_multi_processor_test.cc
     # Add more test files if needed
 )
 
@@ -17,7 +18,9 @@ target_include_directories(${PROJECT_NAME}
 )
 
 # Link the Catch2 library to the test executable
-target_link_libraries(${PROJECT_NAME} PUBLIC Catch2::Catch2WithMain vectro::vectro)
+target_link_libraries(${PROJECT_NAME} PUBLIC 
+    Catch2::Catch2WithMain 
+    vectro::vectro)
 
 # Set the C++ standard
 set_target_properties(${PROJECT_NAME} PROPERTIES
