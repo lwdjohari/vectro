@@ -1,4 +1,4 @@
-# 🚀 vectro::pool::TaskMultiProcessor
+# 🚀 Vectro TaskMultiProcessor
 
 **Vectro** includes a battle-tested,single header-only, multithreaded task queue processor for C++17+ powered by Abseil. It provides flexible scheduling modes, backpressure controls, timeouts, futures/promises, and graceful shutdown—all wrapped in a single, easy-to-use template.
 
