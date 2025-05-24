@@ -93,7 +93,7 @@ int main() {
   using namespace vectro::pool;
 
   // 1) Configure
-  TaskProcessorConfig<> cfg;
+  TaskProcessorConfig cfg;
   cfg.id = "SimpleExample";
   cfg.num_threads = 2;
   cfg.mode = ScheduleMode::RoundRobin;
@@ -118,7 +118,7 @@ int main() {
 
 ## 📖 API Reference
 
-### `TaskProcessorConfig<>`
+### `TaskProcessorConfig`
 
 A simple struct with public members:
 
@@ -143,11 +143,11 @@ bool enable_drain_on_shutdown;
 
 ```cpp
 // Constructor & destructor
-explicit TaskMultiProcessor(const TaskProcessorConfig<>& cfg = {});
+explicit TaskMultiProcessor(const TaskProcessorConfig& cfg = {});
 ~TaskMultiProcessor();
 
 // Configuration
-void UpdateConfig(const TaskProcessorConfig<>& cfg);
+void UpdateConfig(const TaskProcessorConfig& cfg);
 void SetThreadAffinity(AffinityFn fn);
 void SetFinalCallback(FinalCallback cb);
 void RegisterCallback(const Callback &cb);
@@ -176,7 +176,7 @@ size_t GetStolenCount() const;
 
 ```cpp
 struct LogMessage { int level; std::string text; Time ts; };
-TaskProcessorConfig<> cfg;
+TaskProcessorConfig cfg;
 cfg.id = "Logger";
 cfg.mode = ScheduleMode::FIFO;
 cfg.num_threads = 1;
@@ -189,7 +189,7 @@ logger.Enqueue({1, "App started", Now()});
 
 ```cpp
 struct Frame { int id; /* data */ };
-TaskProcessorConfig<> cfg;
+TaskProcessorConfig cfg;
 cfg.id = "Transcoder";
 cfg.mode = ScheduleMode::RoundRobin;
 cfg.num_threads = 4;
@@ -202,7 +202,7 @@ for(auto& f: frames) trans.Enqueue(f);
 
 ```cpp
 struct URLTask { std::string url; int depth; };
-TaskProcessorConfig<> cfg;
+TaskProcessorConfig cfg;
 cfg.id = "Crawler";
 cfg.mode = ScheduleMode::WorkStealing;
 cfg.num_threads = 8;
