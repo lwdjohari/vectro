@@ -24,7 +24,7 @@ class Session : public std::enable_shared_from_this<Session<Stream>> {
       std::function<void(std::shared_ptr<Session>, std::error_code)>;
 
   Session(Stream stream, boost::asio::any_io_executor executor,
-          std::unique_ptr<FramerBase> framer, std::chrono::seconds read_timeout,
+          std::unique_ptr<FrameBase> framer, std::chrono::seconds read_timeout,
           std::chrono::seconds idle_timeout)
                   : socket_(std::move(stream)),
                     executor_(executor),
@@ -120,6 +120,7 @@ class Session : public std::enable_shared_from_this<Session<Stream>> {
     });
   }
 
+  // Session id
   uint64_t id() const {
     return id_;
   }
@@ -137,15 +138,27 @@ class Session : public std::enable_shared_from_this<Session<Stream>> {
           if (self->shutdown_in_progress_)
             return;
           if (!ec) {
+            // Cancel the previous read timeout—the fact that data arrived
+            // means we shouldn’t fire the old timer.
+            // Processing Timeout will be on Framer Implementation not in here
+            self->read_timer_.cancel();
+
+            // TODO: Consider whether you also want to cancel the idle timer
+            // here,
+            //       if you treat “activity” the same for read vs. idle.
+
             // TODO: Performance Metrics: record bytes read, message count
             self->read_timer_.expires_after(self->read_timeout_);
             self->idle_timer_.expires_after(self->idle_timeout_);
+
+            // Frames Processing
             auto msgs = self->framer_->OnData(n);
             for (auto& m : msgs) {
               try {
                 if (self->on_message_)
                   self->on_message_(self, std::move(m));
-              } catch (...) { /* survive handler exceptions */
+              } catch (...) {
+                /* survive handler exceptions */
               }
             }
             self->StartRead();
@@ -215,7 +228,7 @@ class Session : public std::enable_shared_from_this<Session<Stream>> {
 
   Stream socket_;
   asio::any_io_executor executor_;
-  std::unique_ptr<FramerBase> framer_;
+  std::unique_ptr<FrameBase> framer_;
 
   // Direct-write queue
   std::deque<std::vector<asio::const_buffer>> write_deque_;

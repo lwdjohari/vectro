@@ -18,6 +18,7 @@ namespace vectro {
 // 4. Error Handling & Fault Tolerance: robust handling of lookup and removal
 // errors
 
+// Thread-safe registry manager of active sessions
 template <typename Session>
 class SessionManager {
  public:
@@ -45,7 +46,7 @@ class SessionManager {
     return it != sessions_.end() ? it->second : nullptr;
   }
 
-  // Retrieve a snapshot of all sessions
+  // Retrieve a snapshot of all sessions.
   std::vector<SessionPtr> All() const {
     std::lock_guard<std::mutex> lock(mutex_);
     std::vector<SessionPtr> result;
@@ -83,15 +84,27 @@ class SessionManager {
   }
 
   // Current number of active sessions
-  // TODO: expose as gauge in metrics system
   std::size_t Count() const {
     std::lock_guard<std::mutex> lock(mutex_);
     return sessions_.size();
   }
 
+  // Close all sessions with graceful drain signal all sessions to close without
+  // dropping in-flight. When force=true immediately cancel all sessions.
+  void Close(bool force = false) {
+    if (force) {
+      DrainForce();
+    } else {
+      DrainGraceful();
+    }
+  }
+
+ private:
+  mutable std::mutex mutex_;  // protects sessions_
+  absl::node_hash_map<uint64_t, SessionPtr> sessions_;
+
   // Graceful drain: signal all sessions to close without dropping in-flight
-  // work
-  // TODO: implement by invoking session->Close(false) on each session
+  // work. Implement by invoking session->Close(false) on each session.
   void DrainGraceful() {
     std::lock_guard<std::mutex> lock(mutex_);
     for (auto& kv : sessions_) {
@@ -101,8 +114,8 @@ class SessionManager {
     }
   }
 
-  // Forceful drain: immediately cancel all sessions
-  // TODO: implement by invoking session->Close(true) on each session
+  // Forceful drain: immediately cancel all sessions.
+  // Implement by invoking session->Close(true) on each session.
   void DrainForce() {
     std::lock_guard<std::mutex> lock(mutex_);
     for (auto& kv : sessions_) {
@@ -112,10 +125,6 @@ class SessionManager {
     }
     sessions_.clear();
   }
-
- private:
-  mutable std::mutex mutex_;  // protects sessions_
-  absl::node_hash_map<uint64_t, SessionPtr> sessions_;
 };
 
 }  // namespace vectro
