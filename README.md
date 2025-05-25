@@ -18,6 +18,7 @@ Vectro is a production-grade networking framework for **C++17**, offering:
 - **Zero-copy message buffers** using allocator-aware design
 - Plugin-driven lifecycle: intercept, tag, rate limit, heartbeat
 - Backpressure control, graceful/force shutdown, timeouts
+- Multi-Channel Session Shard-based with message ordering guarantee
 - TLS-ready
 - TCP Server & Client
 - WebSocket (WS/WSS) Server & Client
