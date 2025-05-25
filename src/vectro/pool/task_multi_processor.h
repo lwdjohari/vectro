@@ -153,32 +153,32 @@ class TaskMultiProcessor {
   }
 
   // Plain enqueue
-  void Enqueue(const T& item) {
-    EnqueueImpl(item, {});
+  void Submit(const T& item) {
+    SubmitImpl(item, {});
   }
 
-  // Enqueue with timeout
-  bool EnqueueWithTimeout(const T& item, Time deadline) {
+  // Submit with timeout
+  bool SubmitWithTimeout(const T& item, Time deadline) {
     if (Now() >= deadline)
       return false;
-    EnqueueImpl(item, {});
+    SubmitImpl(item, {});
     return true;
   }
-  bool EnqueueWithTimeout(const T& item, Time deadline,
+  bool SubmitWithTimeout(const T& item, Time deadline,
                           std::shared_ptr<std::atomic<bool>> token) {
     if ((token && token->load()) || Now() >= deadline)
       return false;
-    EnqueueImpl(item, {});
+    SubmitImpl(item, {});
     return true;
   }
 
-  // Enqueue with future
+  // Submit with future
   template <typename R>
-  std::future<R> EnqueueWithResult(const T& item,
+  std::future<R> SubmitWithResult(const T& item,
                                    std::function<R(const T&)> fn) {
     auto p = std::make_shared<std::promise<R>>();
     auto fut = p->get_future();
-    EnqueueImpl(item, {[fn, p](const T& t) {
+    SubmitImpl(item, {[fn, p](const T& t) {
                   try {
                     p->set_value(fn(t));
                   } catch (...) {
@@ -188,9 +188,9 @@ class TaskMultiProcessor {
     return fut;
   }
 
-  // Enqueue with future + cancellation
+  // Submit with future + cancellation
   template <typename R>
-  std::future<R> EnqueueWithResult(const T& item, std::function<R(const T&)> fn,
+  std::future<R> SubmitWithResult(const T& item, std::function<R(const T&)> fn,
                                    std::shared_ptr<std::atomic<bool>> token) {
     auto p = std::make_shared<std::promise<R>>();
     auto fut = p->get_future();
@@ -199,7 +199,7 @@ class TaskMultiProcessor {
           std::runtime_error("Task canceled before enqueue")));
       return fut;
     }
-    EnqueueImpl(
+    SubmitImpl(
         item, {[fn, p, token](const T& t) {
           try {
             if (token && token->load(std::memory_order_relaxed)) {
@@ -233,13 +233,17 @@ class TaskMultiProcessor {
   }
 
  private:
-  void EnqueueImpl(const T& item, std::vector<Callback> wrappers) {
+  void SubmitImpl(const T& item, std::vector<Callback> wrappers) {
     size_t curr = tasks_in_queue_.load();
+    
+    // Drop message by Circuit-Breaker
     if (cfg_.enable_circuit_breaker && cfg_.max_queue_size &&
         curr >= cfg_.max_queue_size) {
       dropped_count_.fetch_add(1);
       return;
     }
+
+    // Backpressure handling
     if (cfg_.enable_backoff && cfg_.backpressure_threshold &&
         curr >= cfg_.backpressure_threshold) {
       int64_t base = absl::ToInt64Milliseconds(cfg_.backoff_duration);
@@ -247,9 +251,12 @@ class TaskMultiProcessor {
       thread_local static std::mt19937_64 rng((std::random_device())());
       int64_t ms =
           base + std::uniform_int_distribution<int64_t>(-jit, jit)(rng);
-      if (ms > 0)
+      if (ms > 0){
         absl::SleepFor(Milliseconds(ms));
+      }
     }
+
+    // add to queue
     TaskItem<T> ti{item, std::move(wrappers)};
     size_t idx = (cfg_.mode == ScheduleMode::FIFO
                       ? 0
@@ -259,6 +266,9 @@ class TaskMultiProcessor {
       queues_[idx].push_back(std::move(ti));
       size_t hwm = queues_[idx].size(), prev = high_water_mark_.load();
       while (hwm > prev && !high_water_mark_.compare_exchange_weak(prev, hwm)) {
+        // yield to avoids sudden spike that lead to wildfire &
+        // avoids aggressive spinning
+        std::this_thread::yield();
       }
     }
     tasks_in_queue_.fetch_add(1);
@@ -389,7 +399,7 @@ class TaskMultiProcessor {
 //   // Safe, ordered write to disk
 //   write_to_disk(m);
 // });
-// logger.Enqueue({INFO, "Start up", Now()});
+// logger.Submit({INFO, "Start up", Now()});
 
 // 2. Video Transcoding Pool (Round-Robin)
 //    Distributes frames evenly across 4 worker threads.
@@ -403,7 +413,7 @@ class TaskMultiProcessor {
 // transcoder.RegisterCallback([](const Frame &f) {
 //   encode_frame(f);
 // });
-// for (auto &frame : frames) transcoder.Enqueue(frame);
+// for (auto &frame : frames) transcoder.Submit(frame);
 
 // 3. Web Crawler (Work-Stealing)
 //    Balances slow and fast fetch tasks dynamically.
@@ -422,12 +432,12 @@ class TaskMultiProcessor {
 // crawler.RegisterCallback([](const URLTask &u) {
 //   fetch_and_parse(u.url, u.depth);
 // });
-// crawler.Enqueue({"https://example.com", 0});
+// crawler.Submit({"https://example.com", 0});
 
 // 4. Task with Timeout
 //    Drop if not queued before deadline.
 //
-// auto success = crawler.EnqueueWithTimeout(task, Now() + Milliseconds(2000));
+// auto success = crawler.SubmitWithTimeout(task, Now() + Milliseconds(2000));
 // if (!success) {
 //   log_warning("Task dropped due to timeout");
 // }
@@ -436,7 +446,7 @@ class TaskMultiProcessor {
 //    Retrieve compute result asynchronously.
 //
 // struct ComputeTask { int data; };
-// auto fut = transcoder.EnqueueWithResult<int>(
+// auto fut = transcoder.SubmitWithResult<int>(
 //     {42},
 //     [](const ComputeTask &t) { return do_compute(t.data); }
 // );
@@ -446,7 +456,7 @@ class TaskMultiProcessor {
 //    Use cancellation token to abort before enqueue or before execution.
 //
 // auto token = std::make_shared<std::atomic<bool>>(false);
-// auto fut2 = transcoder.EnqueueWithResult<int>(
+// auto fut2 = transcoder.SubmitWithResult<int>(
 //     task,
 //     [](const ComputeTask &t) { return heavy_compute(t.data); },
 //     token
