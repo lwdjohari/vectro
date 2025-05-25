@@ -42,7 +42,7 @@ TEST_CASE("Basic FIFO preserves strict order", "[TaskMultiProcessor]") {
   });
 
   for (int i = 0; i < 5; ++i){
-    qp.Enqueue(i);
+    qp.Submit(i);
   }
   SleepFor(Milliseconds(50));
 
@@ -63,7 +63,7 @@ TEST_CASE("RoundRobin processes all tasks", "[TaskMultiProcessor]") {
   qp.RegisterCallback([&](int x) { sum += x; });
 
   for (int i = 1; i <= 4; ++i){
-    qp.Enqueue(i);
+    qp.Submit(i);
   }
   SleepFor(Milliseconds(50));
 
@@ -79,51 +79,51 @@ TEST_CASE("Circuit breaker drops excess tasks", "[TaskMultiProcessor]") {
   cfg.max_queue_size = 2;
 
   TaskMultiProcessor<int> qp(cfg);
-  qp.Enqueue(1);
-  qp.Enqueue(2);
-  qp.Enqueue(3);  // dropped
+  qp.Submit(1);
+  qp.Submit(2);
+  qp.Submit(3);  // dropped
 
   REQUIRE(qp.GetDroppedCount() == 1);
   SleepFor(Milliseconds(50));
   REQUIRE(qp.GetProcessedCount() == 2);
 }
 
-TEST_CASE("EnqueueWithTimeout respects past deadline", "[TaskMultiProcessor]") {
+TEST_CASE("SubmitWithTimeout respects past deadline", "[TaskMultiProcessor]") {
   TaskProcessorConfig cfg;
   TaskMultiProcessor<int> qp(cfg);
 
-  bool ok = qp.EnqueueWithTimeout(42, Now() - Seconds(1));
+  bool ok = qp.SubmitWithTimeout(42, Now() - Seconds(1));
   REQUIRE_FALSE(ok);
 }
 
-TEST_CASE("EnqueueWithResult returns correct future result",
+TEST_CASE("SubmitWithResult returns correct future result",
           "[TaskMultiProcessor]") {
   TaskProcessorConfig cfg;
   cfg.num_threads = 1;
   TaskMultiProcessor<int> qp(cfg);
 
-  auto fut = qp.EnqueueWithResult<int>(7, [](int x) { return x * 3; });
+  auto fut = qp.SubmitWithResult<int>(7, [](int x) { return x * 3; });
   REQUIRE(fut.get() == 21);
 }
 
-TEST_CASE("EnqueueWithResult cancellation before enqueue",
+TEST_CASE("SubmitWithResult cancellation before enqueue",
           "[TaskMultiProcessor]") {
   TaskProcessorConfig cfg;
   TaskMultiProcessor<int> qp(cfg);
 
   auto token = std::make_shared<std::atomic<bool>>(true);
-  auto fut = qp.EnqueueWithResult<int>(5, [](int x) { return x; }, token);
+  auto fut = qp.SubmitWithResult<int>(5, [](int x) { return x; }, token);
   REQUIRE_THROWS_AS(fut.get(), std::runtime_error);
 }
 
-TEST_CASE("EnqueueWithResult cancellation before execution",
+TEST_CASE("SubmitWithResult cancellation before execution",
           "[TaskMultiProcessor]") {
   TaskProcessorConfig cfg;
   cfg.num_threads = 1;
   TaskMultiProcessor<int> qp(cfg);
 
   auto token = std::make_shared<std::atomic<bool>>(false);
-  auto fut = qp.EnqueueWithResult<int>(
+  auto fut = qp.SubmitWithResult<int>(
       5,
       [&](int x) {
         SleepFor(Milliseconds(50));
@@ -146,8 +146,8 @@ TEST_CASE("Backpressure does not drop tasks", "[TaskMultiProcessor]") {
   std::atomic<int> count{0};
   qp.RegisterCallback([&](int x) { count++; });
 
-  qp.Enqueue(1);
-  qp.Enqueue(2);
+  qp.Submit(1);
+  qp.Submit(2);
   SleepFor(Milliseconds(50));
   REQUIRE(count.load() == 2);
 }
@@ -158,8 +158,8 @@ TEST_CASE("Metrics getters reflect activity", "[TaskMultiProcessor]") {
   cfg.num_threads = 1;
   TaskMultiProcessor<int> qp(cfg);
 
-  qp.Enqueue(10);
-  qp.Enqueue(20);
+  qp.Submit(10);
+  qp.Submit(20);
   absl::SleepFor(absl::Milliseconds(50));
 
   REQUIRE(qp.GetHighWaterMark() >= 1);
@@ -181,9 +181,9 @@ TEST_CASE("Exception in callbacks are isolated and do not kill worker threads",
   // Second callback increments count
   qp.RegisterCallback([&](int x) { count += x; });
 
-  // Enqueue tasks
+  // Submit tasks
   for (int i = 1; i <= 5; ++i)
-    qp.Enqueue(i);
+    qp.Submit(i);
   absl::SleepFor(absl::Milliseconds(100));
 
   // Even though first callback throws, second callback should still process all
@@ -204,14 +204,14 @@ TEST_CASE("Exception in callbacks are isolated and do not kill worker threads",
 
 //     // First flood (should trigger notification)
 //     auto out1 = CaptureCerr([&]() {
-//         for (int i = 0; i < 10; ++i) qp.Enqueue(i);
+//         for (int i = 0; i < 10; ++i) qp.Submit(i);
 //         absl::SleepFor(absl::Milliseconds(250));  // allow processing &
 //         notification
 //     });
 
 //     // Second flood after interval (should trigger another notification)
 //     auto out2 = CaptureCerr([&]() {
-//         for (int i = 0; i < 10; ++i) qp.Enqueue(i);
+//         for (int i = 0; i < 10; ++i) qp.Submit(i);
 //         absl::SleepFor(absl::Milliseconds(250));  // allow processing &
 //         notification
 //     });

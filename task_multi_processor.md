@@ -30,11 +30,11 @@
   * Rate-limited drop notifications
 * **Timeouts & Cancellation**
 
-  * `EnqueueWithTimeout` drops tasks past a deadline
+  * `SubmitWithTimeout` drops tasks past a deadline
   * Cancellation-token overloads for immediate abort
 * **Futures & Promises**
 
-  * `EnqueueWithResult<R>` returns `std::future<R>` for async results
+  * `SubmitWithResult<R>` returns `std::future<R>` for async results
   * Cancellation aware overload
 * **Graceful Shutdown**
 
@@ -106,8 +106,8 @@ int main() {
     std::cout << "Processed: " << x << '\n';
   });
 
-  // 4) Enqueue tasks
-  for (int i = 0; i < 10; ++i) qp.Enqueue(i);
+  // 4) Submit tasks
+  for (int i = 0; i < 10; ++i) qp.Submit(i);
 
   // 5) Destructor drains and joins threads
   return 0;
@@ -152,13 +152,13 @@ void SetThreadAffinity(AffinityFn fn);
 void SetFinalCallback(FinalCallback cb);
 void RegisterCallback(const Callback &cb);
 
-// Enqueue APIs
+// Submit Task APIs
 enum { FIFO=0, RoundRobin=1, WorkStealing=2 };
-void Enqueue(const T& item);
-bool EnqueueWithTimeout(const T& item, Time deadline);
-bool EnqueueWithTimeout(const T& item, Time deadline, shared_ptr<atomic<bool>> token);
-template<typename R> std::future<R> EnqueueWithResult(const T& item, function<R(const T&)> fn);
-template<typename R> std::future<R> EnqueueWithResult(const T& item, function<R(const T&)> fn, shared_ptr<atomic<bool>> token);
+void Submit(const T& item);
+bool SubmitWithTimeout(const T& item, Time deadline);
+bool SubmitWithTimeout(const T& item, Time deadline, shared_ptr<atomic<bool>> token);
+template<typename R> std::future<R> SubmitWithResult(const T& item, function<R(const T&)> fn);
+template<typename R> std::future<R> SubmitWithResult(const T& item, function<R(const T&)> fn, shared_ptr<atomic<bool>> token);
 
 // Metrics
 size_t GetQueueSize() const;
@@ -182,7 +182,7 @@ cfg.mode = ScheduleMode::FIFO;
 cfg.num_threads = 1;
 TaskMultiProcessor<LogMessage> logger(cfg);
 logger.RegisterCallback([](const LogMessage &m){ write_to_disk(m); });
-logger.Enqueue({1, "App started", Now()});
+logger.Submit({1, "App started", Now()});
 ```
 
 **2. Video Transcoding (Round-Robin)**
@@ -195,7 +195,7 @@ cfg.mode = ScheduleMode::RoundRobin;
 cfg.num_threads = 4;
 TaskMultiProcessor<Frame> trans(cfg);
 trans.RegisterCallback([](const Frame& f){ encode_frame(f); });
-for(auto& f: frames) trans.Enqueue(f);
+for(auto& f: frames) trans.Submit(f);
 ```
 
 **3. Web Crawling (Work-Stealing)**
@@ -211,17 +211,17 @@ cfg.steal_policy = [](auto &sizes){
 };
 TaskMultiProcessor<URLTask> crawler(cfg);
 crawler.RegisterCallback([](const URLTask &u){ fetch_and_parse(u.url); });
-crawler.Enqueue({"https://example.com",0});
+crawler.Submit({"https://example.com",0});
 ```
 
 **4. Timeouts & Cancellation**
 
 ```cpp
 auto token = make_shared<atomic<bool>>(false);
-bool ok = crawler.EnqueueWithTimeout(task, Now()+Milliseconds(2000), token);
+bool ok = crawler.SubmitWithTimeout(task, Now()+Milliseconds(2000), token);
 if(!ok) log_warn("Dropped or canceled");
 
-auto fut = crawler.EnqueueWithResult<int>(task, computeFn, token);
+auto fut = crawler.SubmitWithResult<int>(task, computeFn, token);
 if(fut.wait_for(2s)==future_status::timeout) token->store(true);
 ```
 
