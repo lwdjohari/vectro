@@ -14,6 +14,7 @@
 // #include "vectro/server_tag.h"
 #include "vectro/tcp/tcp_acceptor_loop.h"
 #include "vectro/tls/tls_context_provider.h"
+#include "vectro/tls/detail/stream_traits.h"
 
 namespace vectro {
 namespace tcp {
@@ -22,8 +23,8 @@ namespace asio = boost::asio;
 using Port = uint16_t;
 struct PortConfig {
   Port port;
-  PluginBundle bundle;
-  std::shared_ptr<TlsContextProvider> tls_provider;
+  plugin::PluginBundle bundle;
+  std::shared_ptr<tls::TlsContextProvider> tls_provider;
   absl::Duration accept_timeout;
   bool delayed_accept;
 };
