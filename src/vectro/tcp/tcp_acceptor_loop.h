@@ -12,7 +12,7 @@
 #include "vectro/controller.h"
 #include "vectro/plugin/plugin_bundle.h"
 #include "vectro/session.h"
-#include "vectro/tcp/acceptor_loop_interface.h"
+#include "vectro/tcp/tcp_acceptor_interface.h"
 
 namespace vectro {
 namespace tcp {
