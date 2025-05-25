@@ -1,14 +1,11 @@
-// acceptor_loop_interface.h
 #pragma once
-
 #include <memory>
-#include <boost/asio.hpp>
 
 namespace vectro {
-namespace tls {
+namespace tcp {
 
 // AcceptorLoop pure‐virtual interface
-template<typename Stream>
+template <typename Stream>
 class AcceptorLoopInterface {
  public:
   using Ptr = std::shared_ptr<AcceptorLoopInterface<Stream>>;
@@ -25,5 +22,5 @@ class AcceptorLoopInterface {
   virtual void EnableDraining(bool enable) = 0;
 };
 
-}  // namespace tls
+}  // namespace tcp
 }  // namespace vectro
