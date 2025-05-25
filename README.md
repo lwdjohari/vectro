@@ -31,10 +31,10 @@ Vectro is a production-grade networking framework for **C++17**, offering:
 
 | Feature       | TCP | TLS | WebSocket | UDP |
 |---------------|-----|-----|-----------|-----|
-| Async I/O     | ✅  | ✅  | ✅        | ✅  |
-| Multi-port    | ✅  | ✅  | ✅        | ✅  |
-| Session object| ✅  | ✅  | ✅        | ✅ (pseudo) |
-| TLS Support   | —   | ✅  | ✅ (WSS)  | (DTLS planned) |
+| Async I/O     | 🚧  | 🚧  | 🔄        | 🔄  |
+| Multi-port    | 🚧  | 🚧  | 🔄        | 🔄  |
+| Session object| 🚧  | 🚧  | 🔄        | 🔄 (pseudo) |
+| TLS Support   | —   | 🚧  | 🔄 (WSS)  | 🔄(DTLS planned) |
 
 ### 2. Buffer & Message Layer
 
@@ -42,7 +42,7 @@ Vectro is a production-grade networking framework for **C++17**, offering:
 |------------------------------|--------|-------|
 | Zero-copy RawBuffer          | ✅     | Shared + allocator-aware |
 | Framer pluggability          | ✅     | TCP, WS, UDP supported |
-| InternalMessage abstraction  | ✅     | `trace_id`, `route_hint`, payload |
+| InternalMessage abstraction  | ✅ (partial)    | `trace_id`, `route_hint`, payload |
 | Metadata tagging             | ✅     | Flexible per message |
 
 ### 3. Session Lifecycle
@@ -55,39 +55,39 @@ Vectro is a production-grade networking framework for **C++17**, offering:
 | Accept timeout               | ✅     |
 | Read/write timeouts          | ✅     |
 | Idle session expiry          | ✅     |
-| Disconnection detection      | ✅     |
+| Disconnection detection      | 🚧     |
 
 ### 4. Plugin System
 
 | Plugin Type       | Purpose                        | Scope |
 |-------------------|---------------------------------|-------|
 | Interceptor       | Drop/modify outbound message   | Session/Controller |
-| HeartbeatEmitter  | Periodic pings                 | Session |
+| HeartbeatEmitter  | Periodic pings                 | TcpClient |
 | RateLimiter       | Custom throttle logic          | Session/Controller |
-| OverloadShedder   | Backpressure-aware rejection   | Controller |
-| SessionTagger     | ACL/priority labeling          | On connect |
+| OverloadShedder   | Backpressure-aware rejection   | Acceptor/Connector/Session |
+| Acceptor          | Backpressure-aware rejection   | OnAccept/OnConnect |
 | ControllerHook    | Metrics/alert hooks            | Global |
 
 ### 5. Observability
 
 | Feature                    | Status |
 |----------------------------|--------|
-| Per-message trace ID       | ✅     |
-| Tagged sessions            | ✅     |
-| Session registry           | ✅     |
-| Structured logs via plugin | ✅     |
-| Metrics export readiness   | ✅     |
+| Per-message trace ID       | 🚧     |
+| Tagged sessions            | 🚧     |
+| Session registry           | 🚧     |
+| Structured logs via plugin | 🚧     |
+| Metrics export readiness   | 🚧     |
 | CLI, Prometheus (planned)  | 🔄     |
 
 ### 6. Real-World Readiness
 
 | Capability                 | Status |
 |----------------------------|--------|
-| Long-running client/server | ✅     |
-| Allocator integration      | ✅     |
-| TLS cert reload            | ✅     |
-| Plugin (Pluggable Module)  | ✅     |
-| Scoped backpressure toggle | ✅     |
+| Long-running client/server | 🚧     |
+| Allocator integration      | 🚧     |
+| TLS cert reload            | 🚧     |
+| Plugin (Pluggable Module)  | 🚧     |
+| Scoped backpressure toggle | 🚧    |
 
 ---
 
@@ -96,7 +96,7 @@ Vectro is a production-grade networking framework for **C++17**, offering:
 ```
 [ Accept Loop (multi-port) ]
         |
-     [ Session<T> ]
+    [ Session<T> ]
         |
    [ FramerBase<T> ]
         |
@@ -106,7 +106,16 @@ Vectro is a production-grade networking framework for **C++17**, offering:
         |
    [ Controller ]
         |
-  [ Router -> Broadcast / Targeted ]
+  [ InboundChannel] 
+        |
+[ Router *optional ]
+        |
+    [Processor]
+        |
+[ OutboundChannel ] *via origin/via other port
+        |
+   [ Session<T> ]
+        
 ```
 
 ---
@@ -171,7 +180,7 @@ target_compile_features(PROJECT PUBLIC cxx_std_17)
 
 ```cpp
 auto controller = std::make_shared<Controller<TcpSession>>(io.get_executor());
-auto server = std::make_shared<VtTcpServer<TcpStream>>(io, controller, LengthPrefixedFramerFactory);
+auto server = std::make_shared<TcpServer<TcpStream>>(io, controller, LengthPrefixedFramerFactory);
 
 PluginBundle bundle;
 bundle.Set(PluginKeys::kInterceptor, std::make_shared<MyInterceptor>());
@@ -189,7 +198,7 @@ auto tls = std::make_shared<DefaultReloadableTlsContextProvider>(
 );
 
 auto controller = std::make_shared<Controller<WsTlsSession>>(io.get_executor());
-auto server = std::make_shared<VtTcpServer<WsTlsStream>>(io, controller, WebSocketFramerFactory);
+auto server = std::make_shared<TcpServer<WsTlsStream>>(io, controller, WebSocketFramerFactory);
 
 PluginBundle bundle;
 bundle.Set(PluginKeys::kInterceptor, std::make_shared<MyLogger>());
@@ -263,7 +272,7 @@ auto tls = std::make_shared<DefaultReloadableTlsContextProvider>(
 
 tls->StartReloadTimer(io, std::chrono::seconds(60));  // Reload every 60s
 
-VtTcpServer<WsTlsStream> server(io, controller, WebSocketFramerFactory);
+TcpServer<WsTlsStream> server(io, controller, WebSocketFramerFactory);
 server.AddPort(443, plugin_bundle, tls);  // WSS server
 ```
 
@@ -297,7 +306,7 @@ You’re connecting to `mqtt.example.com` or `api.acme.org` — secured by a cer
 ```cpp
 auto tls = std::make_shared<CaVerifiedTlsClientContextProvider>("mozilla-ca.pem");
 
-auto client = std::make_shared<VtTcpClient<TlsStream>>(
+auto client = std::make_shared<TcpClient<TlsStream>>(
     io, "secure-client", "mqtt.example.com", 8883, LengthPrefixedFramerFactory, tls);
 ```
 
@@ -321,7 +330,7 @@ You're connecting to an **internal server** using a self-signed certificate:
 ```cpp
 auto tls = std::make_shared<SelfSignedTlsClientContextProvider>("internal-server.pem");
 
-auto client = std::make_shared<VtTcpClient<WsTlsStream>>(
+auto client = std::make_shared<TcpClient<WsTlsStream>>(
     io, "internal-wss", "10.0.0.5", 443, WebSocketFramerFactory, tls);
 ```
 
@@ -341,7 +350,7 @@ You just want TLS transport without validation (e.g. test server with `openssl r
 ```cpp
 auto tls = std::make_shared<DefaultTlsClientContextProvider>();  // verify_none
 
-auto client = std::make_shared<VtTcpClient<WsTlsStream>>(
+auto client = std::make_shared<TcpClient<WsTlsStream>>(
     io, "dev-client", "localhost", 8443, WebSocketFramerFactory, tls);
 ```
 
