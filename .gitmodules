@@ -5,3 +5,7 @@
 	path = third_party/boost
 	url = https://github.com/boostorg/boost
 	shallow = true
+[submodule "third_party/asio"]
+	path = third_party/asio
+	url = https://github.com/chriskohlhoff/asio
+	shallow = true
