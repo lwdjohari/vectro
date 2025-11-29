@@ -1,7 +1,7 @@
 // main.cpp
 
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
+#include <asio.hpp>
+#include <asio/ssl.hpp>
 
 #include "absl/time/time.h"
 #include "vectro/controller.h"
@@ -12,12 +12,12 @@
 using namespace vectro;
 using namespace vectro::tcp;
 using namespace vectro::frame;
-using asio_t = boost::asio::ip::tcp;
-namespace asio = boost::asio;
+using asio_t   = asio::ip::tcp;
+namespace asio = asio;
 
 int main() {
   // 1) io_context drives both acceptors and all Sessions
-  boost::asio::io_context io{std::thread::hardware_concurrency()};
+  asio::io_context io{std::thread::hardware_concurrency()};
 
   // 2) Create Controller with 4 channels for business logic
   auto controller =
@@ -28,7 +28,7 @@ int main() {
   struct EchoRouter : public IMessageRouter<Session<asio_t::socket>> {
     void Route(InternalMessage msg) override {
       // Echo the received line back to the same session
-      auto session_id = msg.meta().connection_id;
+      auto session_id         = msg.meta().connection_id;
       msg.meta().dest_session = session_id;
       // copy payload back
       session->AsyncSend(std::make_shared<InternalMessage>(std::move(msg)));
@@ -52,11 +52,15 @@ int main() {
   tcp::Server<asio_t::socket> server_plain{
       io, controller,
       /*framer_factory=*/
-      []() { return std::make_unique<SimpleLineFramer>(); }};
-  tcp::Server<boost::asio::ssl::stream<asio_t::socket>> server_tls{
+      []() {
+        return std::make_unique<SimpleLineFramer>();
+      }};
+  tcp::Server<asio::ssl::stream<asio_t::socket>> server_tls{
       io, controller,
       /*framer_factory=*/
-      []() { return std::make_unique<SimpleLineFramer>(); }};
+      []() {
+        return std::make_unique<SimpleLineFramer>();
+      }};
 
   // 6) Add a plaintext listener on port 9000
   server_plain.AddPort(9000, PluginBundle{});
