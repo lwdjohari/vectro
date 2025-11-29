@@ -1,34 +1,72 @@
----
+# .clang-format — Google style baseline + C++20 tweaks
+
 BasedOnStyle: Google
-AlignAfterOpenBracket: Align
-AlignConsecutiveAssignments: false
-AlignConsecutiveDeclarations: false
+Language: Cpp
+Standard: c++20
+
+# --- Layout ---
+ColumnLimit: 80
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+ContinuationIndentWidth: 4
+
+# --- Pointers & References ---
+DerivePointerAlignment: false
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# --- Braces / Short blocks ---
+BreakBeforeBraces: Attach
 AllowShortFunctionsOnASingleLine: Empty
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
-AlwaysBreakAfterReturnType: None
-AlwaysBreakBeforeMultilineStrings: false
-BinPackArguments: true
-BinPackParameters: true
-BreakBeforeBinaryOperators: None
-BreakBeforeBraces: Attach
-# BreakConstructorInitializersBeforeComma: true
-ConstructorInitializerAllOnOneLineOrOnePerLine: true
-ConstructorInitializerIndentWidth: 16
-AlwaysBreakConstructorInitializers: true
-Cpp11BracedListStyle: true
-DerivePointerAlignment: false
-IndentWidth: 2
-KeepEmptyLinesAtTheStartOfBlocks: false
-PointerAlignment: Left
-SortIncludes: true
+
+# --- Namespaces / Access / Case labels ---
+NamespaceIndentation: None
+IndentAccessModifiers: false
+IndentCaseLabels: true
+
+# --- Includes (no reordering / regrouping) ---
+SortIncludes: false
+IncludeBlocks: Preserve
+# Optional: also disable "main header first"
+IncludeIsMainRegex: '^(?!)$'
+IncludeIsMainSourceRegex: '^(?!)$'
+
+# --- Spaces ---
 SpaceAfterCStyleCast: false
-SpaceBeforeAssignmentOperators: true
-SpaceBeforeParens: ControlStatements
-SpaceInEmptyParentheses: false
-SpacesInAngles: false
-SpacesInContainerLiterals: false
-SpacesInCStyleCastParentheses: false
+SpaceBeforeRangeBasedForLoopColon: true
 SpacesInParentheses: false
-Standard: Cpp11
-...
+SpaceBeforeParens: ControlStatements
+SpacesInAngles: false
+
+# --- Alignments ---
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveDeclarations: None
+AlignTrailingComments: true
+AlignAfterOpenBracket: Align
+
+# --- Lambdas / Templates / Requires ---
+AllowShortLambdasOnASingleLine: Empty
+BinPackParameters: true
+BinPackArguments: true
+Cpp11BracedListStyle: true
+RequiresClausePosition: WithPreceding
+
+# --- Preprocessor ---
+SpaceBeforeParensOptions:
+  AfterControlStatements: true
+  AfterFunctionDefinitionName: false
+  AfterFunctionDeclarationName: false
+  AfterOverloadedOperator: false
+MacroBlockBegin: '^\\s*#\\s*if'
+MacroBlockEnd: '^\\s*#\\s*endif'
+
+# --- Comments ---
+ReflowComments: true
+CommentPragmas: '^ NOLINT|^ NOLINTNEXTLINE'
+
+# --- Misc ---
+KeepEmptyLinesAtTheStartOfBlocks: false
+SortUsingDeclarations: true
