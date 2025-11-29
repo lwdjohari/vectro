@@ -4,7 +4,7 @@
 #include <absl/synchronization/mutex.h>
 #include <absl/time/time.h>
 
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <memory>
 #include <vector>
 
@@ -18,7 +18,7 @@
 
 namespace vectro {
 namespace tcp {
-namespace asio = boost::asio;
+namespace asio = asio;
 
 using Port = uint16_t;
 struct PortConfig {

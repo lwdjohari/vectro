@@ -4,7 +4,7 @@
 #include <absl/time/time.h>
 
 #include <atomic>
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <chrono>
 #include <functional>
 #include <memory>
@@ -16,16 +16,18 @@
 
 namespace vectro {
 namespace tcp {
-namespace asio = boost::asio;
+namespace asio = asio;
 // Default implementation of AcceptorLoop using a dedicated strand
 // to serialize all handlers (accept, timer, Stop) and eliminate races.
 // Changes:
 // 1. Introduced `strand_` to bind all async handlers.
 // 2. Wrapped async_accept, timer.async_wait, and Stop() through strand.
-// 3. TODO: Placeholder comments added for backlog monitoring & storm protection.
+// 3. TODO: Placeholder comments added for backlog monitoring & storm
+// protection.
 // 4. Timer expiration now cancels the accept operation instead of closing the
 //    socket to avoid moved-from races and undefined behavior.
-// 5. TODO: Backpressure strategies outlined as comments for max-concurrency gating.
+// 5. TODO: Backpressure strategies outlined as comments for max-concurrency
+// gating.
 // 6. Drain state change callback added for external subscription.
 // 7. Drain callback now receives an Abseil timestamp (using absl::Now()).
 // 8. Recommendation: consider an async pre-session plugin hook to inspect TLS
@@ -34,12 +36,12 @@ template <typename Stream>
 class AcceptorLoop : public AcceptorLoopInterface<Stream>,
                      public std::enable_shared_from_this<AcceptorLoop<Stream>> {
  public:
-  using SessionT = Session<Stream>;
-  using SessionPtr = std::shared_ptr<SessionT>;
-  using AcceptorPtr = std::shared_ptr<asio::ip::tcp::acceptor>;
-  using FrameFactory = std::function<std::unique_ptr<FrameBase>()>;
+  using SessionT       = Session<Stream>;
+  using SessionPtr     = std::shared_ptr<SessionT>;
+  using AcceptorPtr    = std::shared_ptr<asio::ip::tcp::acceptor>;
+  using FrameFactory   = std::function<std::unique_ptr<FrameBase>()>;
   using OnAcceptFilter = std::function<bool(const asio::ip::tcp::endpoint&)>;
-  using ControllerPtr = std::shared_ptr<Controller<SessionT>>;
+  using ControllerPtr  = std::shared_ptr<Controller<SessionT>>;
   // DrainCallback now passes (is_draining, timestamp)
   using DrainCallback =
       std::function<void(bool /*is_draining*/, absl::Time /*when*/)>;
@@ -48,21 +50,22 @@ class AcceptorLoop : public AcceptorLoopInterface<Stream>,
                ControllerPtr controller, FrameFactory framer_factory,
                PluginBundle plugin_bundle, std::chrono::seconds accept_timeout,
                OnAcceptFilter filter = nullptr)
-                  : io_(io),
-                    strand_(asio::make_strand(io)),
-                    acceptor_(std::move(acceptor)),
-                    controller_(std::move(controller)),
-                    framer_factory_(std::move(framer_factory)),
-                    plugin_bundle_(std::move(plugin_bundle)),
-                    accept_timeout_(accept_timeout),
-                    filter_(std::move(filter)) {}
+      : io_(io),
+        strand_(asio::make_strand(io)),
+        acceptor_(std::move(acceptor)),
+        controller_(std::move(controller)),
+        framer_factory_(std::move(framer_factory)),
+        plugin_bundle_(std::move(plugin_bundle)),
+        accept_timeout_(accept_timeout),
+        filter_(std::move(filter)) {}
 
   // Begin accepting connections
   void Start() override {
     if (stopped_)
       return;
-    asio::dispatch(strand_,
-                   [self = this->shared_from_this()]() { self->DoAccept(); });
+    asio::dispatch(strand_, [self = this->shared_from_this()]() {
+      self->DoAccept();
+    });
   }
 
   // Stop accepting new connections and close acceptor
@@ -89,7 +92,7 @@ class AcceptorLoop : public AcceptorLoopInterface<Stream>,
   // Subscribe to draining state changes (on/off)
   void SetDrainCallback(DrainCallback cb) {
     asio::dispatch(strand_, [self = this->shared_from_this(),
-                             cb = std::move(cb)]() mutable {
+                             cb   = std::move(cb)]() mutable {
       self->drain_callback_ = std::move(cb);
     });
   }
@@ -129,9 +132,9 @@ class AcceptorLoop : public AcceptorLoopInterface<Stream>,
     //   return;
     // }
 
-    auto self = this->shared_from_this();
+    auto self   = this->shared_from_this();
     auto socket = std::make_shared<Stream>(io_);
-    auto timer = std::make_shared<asio::steady_timer>(io_);
+    auto timer  = std::make_shared<asio::steady_timer>(io_);
     timer->expires_after(accept_timeout_);
 
     acceptor_->async_accept(

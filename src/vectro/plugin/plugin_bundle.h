@@ -26,7 +26,8 @@ class PluginBundle {
 
 // Plugin typed access helper
 template <typename T>
-std::shared_ptr<T> GetTypedPlugin(const PluginBundle& bundle, const std::string& key) {
+std::shared_ptr<T> GetTypedPlugin(const PluginBundle& bundle,
+                                  const std::string& key) {
   auto base = bundle.Get(key);
   return base ? std::dynamic_pointer_cast<T>(base) : nullptr;
 }

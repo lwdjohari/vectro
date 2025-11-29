@@ -13,15 +13,17 @@ namespace frame {
 class SimpleLineFramer : public FramerBase {
  public:
   SimpleLineFramer()
-                  : scratch_(RawBuffer::Make(
-                        4096,
-                        /*alloc*/
-                        [](std::size_t s) { return ::operator new(s); },
-                        /*deleter*/
-                        [](void* p, std::size_t s) {
-                          ::operator delete(p, s);
-                        })),
-                    write_pos_(0) {}
+      : scratch_(RawBuffer::Make(
+            4096,
+            /*alloc*/
+            [](std::size_t s) {
+              return ::operator new(s);
+            },
+            /*deleter*/
+            [](void* p, std::size_t s) {
+              ::operator delete(p, s);
+            })),
+        write_pos_(0) {}
 
   RawBuffer& PrepareRead() override {
     // ensure at least 1024 free bytes at end
@@ -29,8 +31,14 @@ class SimpleLineFramer : public FramerBase {
       scratch_.Reset();
       scratch_ = RawBuffer::Make(
           write_pos_ + 4096,
-          /*alloc*/ [](std::size_t s) { return ::operator new(s); },
-          /*deleter*/ [](void* p, std::size_t s) { ::operator delete(p, s); });
+          /*alloc*/
+          [](std::size_t s) {
+            return ::operator new(s);
+          },
+          /*deleter*/
+          [](void* p, std::size_t s) {
+            ::operator delete(p, s);
+          });
       write_pos_ = 0;
     }
     return scratch_;
@@ -41,16 +49,21 @@ class SimpleLineFramer : public FramerBase {
     std::vector<InternalMessage> out;
 
     std::size_t start = 0;
-    auto data = static_cast<char*>(scratch_.data());
+    auto data         = static_cast<char*>(scratch_.data());
     for (std::size_t i = 0; i < write_pos_; ++i) {
       if (data[i] == '\n') {
         std::size_t len = i - start;
         // allocate a new RawBuffer for this message
         RawBuffer msgbuf = RawBuffer::Make(
             len,
-            /*alloc*/ [](std::size_t s) { return ::operator new(s); },
+            /*alloc*/
+            [](std::size_t s) {
+              return ::operator new(s);
+            },
             /*deleter*/
-            [](void* p, std::size_t s) { ::operator delete(p, s); });
+            [](void* p, std::size_t s) {
+              ::operator delete(p, s);
+            });
         std::memcpy(msgbuf.data(), data + start, len);
 
         InternalMessageMeta meta;

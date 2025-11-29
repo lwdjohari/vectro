@@ -2,31 +2,30 @@
 
 namespace vectro {
 namespace frame {
-/* public */  
+/* public */
 
-  InternalMessage::InternalMessage(InternalMessageMeta meta, RawBuffer buffer)
-                  : meta_(std::move(meta)), buffer_(std::move(buffer)) {}
+InternalMessage::InternalMessage(InternalMessageMeta meta, RawBuffer buffer)
+    : meta_(std::move(meta)), buffer_(std::move(buffer)) {}
 
-  InternalMessageMeta& InternalMessage::Meta() {
-    return meta_;
-  }
+InternalMessageMeta& InternalMessage::Meta() {
+  return meta_;
+}
 
-  const InternalMessageMeta& InternalMessage::Meta() const {
-    return meta_;
-  }
+const InternalMessageMeta& InternalMessage::Meta() const {
+  return meta_;
+}
 
-  RawBuffer& InternalMessage::buffer() {
-    return buffer_;
-  }
+RawBuffer& InternalMessage::buffer() {
+  return buffer_;
+}
 
-  const RawBuffer& InternalMessage::buffer() const {
-    return buffer_;
-  }
+const RawBuffer& InternalMessage::buffer() const {
+  return buffer_;
+}
 
-  bool InternalMessage::valid() const {
-    return buffer_.valid();
-  }
+bool InternalMessage::valid() const {
+  return buffer_.valid();
+}
 
- 
 }  // namespace frame
 }  // namespace vectro

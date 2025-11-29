@@ -1,11 +1,11 @@
 #pragma once
 
-#include <boost/asio/ssl/context.hpp>
+#include <asio/ssl/context.hpp>
 #include <memory>
 
 namespace vectro {
 namespace tls {
-namespace asio = boost::asio;
+namespace asio = asio;
 class TlsClientContextProvider {
  public:
   virtual std::shared_ptr<asio::ssl::context> GetContext() const = 0;

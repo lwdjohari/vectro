@@ -17,7 +17,7 @@ class RawBuffer {
 
   RawBuffer() = default;
 
-  RawBuffer(const RawBuffer&) = delete;
+  RawBuffer(const RawBuffer&)            = delete;
   RawBuffer& operator=(const RawBuffer&) = delete;
   RawBuffer(void* data, std::size_t size, DeleterFn deleter);
   RawBuffer(RawBuffer&& other) noexcept;
@@ -31,8 +31,8 @@ class RawBuffer {
  private:
   void MoveFrom(RawBuffer&& other) noexcept;
 
-  void* data_ = nullptr;
-  std::size_t size_ = 0;
+  void* data_        = nullptr;
+  std::size_t size_  = 0;
   DeleterFn deleter_ = nullptr;
 };
 }  // namespace frame

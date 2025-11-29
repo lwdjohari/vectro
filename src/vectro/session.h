@@ -1,4 +1,4 @@
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <chrono>
 #include <deque>
 #include <functional>
@@ -12,7 +12,7 @@
 #include "vectro/plugin/plugin_bundle.h"
 
 namespace vectro {
-namespace asio = boost::asio;
+namespace asio = asio;
 // per-connection state with thread-safe, dual write paths and graceful & force
 // shutdown modes
 template <typename Stream>
@@ -23,7 +23,7 @@ class Session : public std::enable_shared_from_this<Session<Stream>> {
   using DisconnectHandler =
       std::function<void(std::shared_ptr<Session>, std::error_code)>;
 
-  Session(Stream stream, boost::asio::any_io_executor executor,
+  Session(Stream stream, asio::any_io_executor executor,
           std::unique_ptr<FrameBase> framer, std::chrono::seconds read_timeout,
           std::chrono::seconds idle_timeout)
                   : socket_(std::move(stream)),
@@ -73,7 +73,7 @@ class Session : public std::enable_shared_from_this<Session<Stream>> {
 
       auto buffers = framer_->Frame(msg);
       if (use_write_queue_) {
-        auto shared = std::make_shared<std::vector<boost::asio::const_buffer>>(
+        auto shared = std::make_shared<std::vector<asio::const_buffer>>(
             std::move(buffers));
         write_queue_sg_.AsyncSend(
             shared, [self = this->shared_from_this()](bool success) {
@@ -132,7 +132,7 @@ class Session : public std::enable_shared_from_this<Session<Stream>> {
       return;
     auto buf = framer_->PrepareRead();
     socket_.async_read_some(
-        boost::asio::buffer(buf),
+        asio::buffer(buf),
         asio::bind_executor(executor_, [self = shared_from_this(), buf](
                                            std::error_code ec, std::size_t n) {
           if (self->shutdown_in_progress_)
@@ -195,7 +195,7 @@ class Session : public std::enable_shared_from_this<Session<Stream>> {
     write_in_progress_ = true;
     auto buffers = std::move(write_deque_.front());
     write_deque_.pop_front();
-    boost::asio::async_write(
+    asio::async_write(
         socket_, buffers,
         asio::bind_executor(executor_, [self = shared_from_this()](
                                            std::error_code ec, std::size_t) {
@@ -239,8 +239,8 @@ class Session : public std::enable_shared_from_this<Session<Stream>> {
   bool use_write_queue_ = false;
 
   // Timers
-  boost::asio::steady_timer read_timer_;
-  boost::asio::steady_timer idle_timer_;
+  asio::steady_timer read_timer_;
+  asio::steady_timer idle_timer_;
   std::chrono::seconds read_timeout_, idle_timeout_;
 
   // Shutdown flags

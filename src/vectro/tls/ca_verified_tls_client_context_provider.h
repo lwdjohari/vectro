@@ -1,6 +1,6 @@
 #pragma once
 
-#include <boost/asio/ssl/context.hpp>
+#include <asio/ssl/context.hpp>
 #include <memory>
 #include <string>
 
@@ -8,7 +8,7 @@
 
 namespace vectro {
 namespace tls {
-namespace asio = boost::asio;
+namespace asio = asio;
 class CaVerifiedTlsClientContextProvider : public TlsClientContextProvider {
  public:
   explicit CaVerifiedTlsClientContextProvider(

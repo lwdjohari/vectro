@@ -60,27 +60,32 @@ class Channel {
 
   // Enqueue a message for processing
   void Enqueue(Msg msg) {
-    if (OnEnqueue)
+    if (OnEnqueue) {
       OnEnqueue(msg);
+    }
     proc_.Submit(std::move(msg));
   }
 
   // Graceful shutdown: drain in-flight tasks then stop
   void ShutdownGraceful() {
-    if (OnShutdown)
+    if (OnShutdown) {
       OnShutdown(false);
+    }
     proc_.~TaskMultiProcessor<Msg>();  // drains then joins
-    if (OnStop)
+    if (OnStop) {
       OnStop();
+    }
   }
 
   // Force shutdown: cancel all tasks immediately
   void ShutdownForce() {
-    if (OnShutdown)
+    if (OnShutdown) {
       OnShutdown(true);
+    }
     proc_.~TaskMultiProcessor<Msg>();  // immediate exit
-    if (OnStop)
+    if (OnStop) {
       OnStop();
+    }
   }
 
   // Dynamic config update
@@ -101,12 +106,12 @@ class Channel {
 // ------------------------------------------------------------
 class ChannelManager {
  public:
-  using Msg = std::shared_ptr<frame::InternalMessage>;
-  using Handler = std::function<void(Msg)>;
+  using Msg        = std::shared_ptr<frame::InternalMessage>;
+  using Handler    = std::function<void(Msg)>;
   using ChannelPtr = std::shared_ptr<Channel>;
 
   explicit ChannelManager(const ChannelConfig& default_cfg, Handler handler)
-                  : default_cfg_(default_cfg), handler_(std::move(handler)) {}
+      : default_cfg_(default_cfg), handler_(std::move(handler)) {}
 
   // Dispatch message to named channel
   void Dispatch(const std::string& id, Msg msg) {
@@ -125,16 +130,18 @@ class ChannelManager {
   // Gracefully shutdown all channels
   void ShutdownAllGraceful() {
     absl::MutexLock lock(&mu_);
-    for (auto& kv : channels_)
+    for (auto& kv : channels_) {
       kv.second->ShutdownGraceful();
+    }
     channels_.clear();
   }
 
   // Force shutdown all channels
   void ShutdownAllForce() {
     absl::MutexLock lock(&mu_);
-    for (auto& kv : channels_)
+    for (auto& kv : channels_) {
       kv.second->ShutdownForce();
+    }
     channels_.clear();
   }
 

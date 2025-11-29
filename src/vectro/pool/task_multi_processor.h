@@ -45,22 +45,22 @@ typedef std::function<void(std::thread&, size_t)> AffinityFn;
 // Adds Task Timeouts & Cancellation and Futures/Promises support
 // template <typename Clock = absl::DefaultClock>
 struct TaskProcessorConfig {
-  std::string id = "TaskProcessor";
+  std::string id     = "TaskProcessor";
   size_t num_threads = std::thread::hardware_concurrency();
-  ScheduleMode mode = ScheduleMode::FIFO;
+  ScheduleMode mode  = ScheduleMode::FIFO;
   StealPolicy steal_policy;
 
-  size_t max_queue_size = 10000;
+  size_t max_queue_size         = 10000;
   size_t backpressure_threshold = 5000;
-  Duration backoff_duration = Milliseconds(10);
-  double jitter_fraction = 0.1;
+  Duration backoff_duration     = Milliseconds(10);
+  double jitter_fraction        = 0.1;
 
   Duration drop_notification_interval = Milliseconds(1000);
-  Duration shutdown_timeout = Milliseconds(5000);
+  Duration shutdown_timeout           = Milliseconds(5000);
 
-  bool enable_circuit_breaker = true;
-  bool enable_backoff = true;
-  bool bind_threads = false;
+  bool enable_circuit_breaker   = true;
+  bool enable_backoff           = true;
+  bool bind_threads             = false;
   bool enable_drain_on_shutdown = true;
 };
 
@@ -79,19 +79,19 @@ class TaskMultiProcessor {
   using Callback = std::function<void(const T&)>;
 
   explicit TaskMultiProcessor(const TaskProcessorConfig& cfg = {})
-                  : cfg_(cfg),
-                    running_(true),
-                    stopped_(false),
-                    tasks_in_queue_(0),
-                    dropped_count_(0),
-                    high_water_mark_(0),
-                    processed_count_(0),
-                    stolen_count_(0),
-                    rr_index_(0),
-                    last_drop_notification_(Now()),
-                    active_workers_(cfg.num_threads),
-                    steal_policy_(cfg.steal_policy ? cfg.steal_policy
-                                                   : DefaultStealPolicy) {
+      : cfg_(cfg),
+        running_(true),
+        stopped_(false),
+        tasks_in_queue_(0),
+        dropped_count_(0),
+        high_water_mark_(0),
+        processed_count_(0),
+        stolen_count_(0),
+        rr_index_(0),
+        last_drop_notification_(Now()),
+        active_workers_(cfg.num_threads),
+        steal_policy_(cfg.steal_policy ? cfg.steal_policy
+                                       : DefaultStealPolicy) {
     queues_.resize(cfg.num_threads);
     qmutexes_.reserve(cfg.num_threads);
     for (size_t i = 0; i < cfg.num_threads; ++i) {
@@ -165,7 +165,7 @@ class TaskMultiProcessor {
     return true;
   }
   bool SubmitWithTimeout(const T& item, Time deadline,
-                          std::shared_ptr<std::atomic<bool>> token) {
+                         std::shared_ptr<std::atomic<bool>> token) {
     if ((token && token->load()) || Now() >= deadline)
       return false;
     SubmitImpl(item, {});
@@ -175,43 +175,42 @@ class TaskMultiProcessor {
   // Submit with future
   template <typename R>
   std::future<R> SubmitWithResult(const T& item,
-                                   std::function<R(const T&)> fn) {
-    auto p = std::make_shared<std::promise<R>>();
+                                  std::function<R(const T&)> fn) {
+    auto p   = std::make_shared<std::promise<R>>();
     auto fut = p->get_future();
     SubmitImpl(item, {[fn, p](const T& t) {
-                  try {
-                    p->set_value(fn(t));
-                  } catch (...) {
-                    p->set_exception(std::current_exception());
-                  }
-                }});
+                 try {
+                   p->set_value(fn(t));
+                 } catch (...) {
+                   p->set_exception(std::current_exception());
+                 }
+               }});
     return fut;
   }
 
   // Submit with future + cancellation
   template <typename R>
   std::future<R> SubmitWithResult(const T& item, std::function<R(const T&)> fn,
-                                   std::shared_ptr<std::atomic<bool>> token) {
-    auto p = std::make_shared<std::promise<R>>();
+                                  std::shared_ptr<std::atomic<bool>> token) {
+    auto p   = std::make_shared<std::promise<R>>();
     auto fut = p->get_future();
     if (token && token->load(std::memory_order_relaxed)) {
       p->set_exception(std::make_exception_ptr(
           std::runtime_error("Task canceled before enqueue")));
       return fut;
     }
-    SubmitImpl(
-        item, {[fn, p, token](const T& t) {
-          try {
-            if (token && token->load(std::memory_order_relaxed)) {
-              p->set_exception(std::make_exception_ptr(
-                  std::runtime_error("Task canceled before execution")));
-            } else {
-              p->set_value(fn(t));
-            }
-          } catch (...) {
-            p->set_exception(std::current_exception());
-          }
-        }});
+    SubmitImpl(item, {[fn, p, token](const T& t) {
+                 try {
+                   if (token && token->load(std::memory_order_relaxed)) {
+                     p->set_exception(std::make_exception_ptr(
+                         std::runtime_error("Task canceled before execution")));
+                   } else {
+                     p->set_value(fn(t));
+                   }
+                 } catch (...) {
+                   p->set_exception(std::current_exception());
+                 }
+               }});
     return fut;
   }
 
@@ -235,7 +234,7 @@ class TaskMultiProcessor {
  private:
   void SubmitImpl(const T& item, std::vector<Callback> wrappers) {
     size_t curr = tasks_in_queue_.load();
-    
+
     // Drop message by Circuit-Breaker
     if (cfg_.enable_circuit_breaker && cfg_.max_queue_size &&
         curr >= cfg_.max_queue_size) {
@@ -247,11 +246,11 @@ class TaskMultiProcessor {
     if (cfg_.enable_backoff && cfg_.backpressure_threshold &&
         curr >= cfg_.backpressure_threshold) {
       int64_t base = absl::ToInt64Milliseconds(cfg_.backoff_duration);
-      int64_t jit = static_cast<int64_t>(base * cfg_.jitter_fraction);
+      int64_t jit  = static_cast<int64_t>(base * cfg_.jitter_fraction);
       thread_local static std::mt19937_64 rng((std::random_device())());
       int64_t ms =
           base + std::uniform_int_distribution<int64_t>(-jit, jit)(rng);
-      if (ms > 0){
+      if (ms > 0) {
         absl::SleepFor(Milliseconds(ms));
       }
     }

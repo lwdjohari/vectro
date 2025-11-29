@@ -4,7 +4,7 @@
 #include <absl/synchronization/mutex.h>
 #include <absl/time/time.h>
 
-#include <boost/asio.hpp>
+#include <asio.hpp>
 #include <functional>
 #include <memory>
 #include <string>
@@ -14,16 +14,16 @@
 #include "vectro/pool/task_multi_processor.h"
 
 namespace vectro {
-namespace asio = boost::asio;
+namespace asio = asio;
 // ------------------------------------------------------------
 // Controller: central orchestration of sessions, clients, and routing
 // ------------------------------------------------------------
 template <typename Session>
 class Controller : public std::enable_shared_from_this<Controller<Session>> {
  public:
-  using SessionPtr = std::shared_ptr<Session>;
-  using ClientPtr = std::shared_ptr<TcpClient>;
-  using Msg = std::shared_ptr<InternalMessage>;
+  using SessionPtr    = std::shared_ptr<Session>;
+  using ClientPtr     = std::shared_ptr<TcpClient>;
+  using Msg           = std::shared_ptr<InternalMessage>;
   using EventCallback = std::function<void(const Msg&)>;
   // ----------------------------------------------------------------
   // Hooks for extension — now work in terms of shared_ptr<InternalMessage>
@@ -42,23 +42,23 @@ class Controller : public std::enable_shared_from_this<Controller<Session>> {
 
   explicit Controller(asio::any_io_executor exec, size_t num_channels = 4,
                       const ChannelConfig& cfg = {})
-                  : strand_(exec),
-                    num_channels_(num_channels),
-                    channel_cfg_(cfg),
-                    // Inbound: pass Msg into HandleProcessing
-                    inbound_manager_(cfg,
-                                     [this](Msg m) {
-                                       this->HandleProcessing(std::move(m));
-                                     }),
-                    // Outbound: pass Msg into HandleOutbound
-                    outbound_manager_(cfg, [this](Msg m) {
-                      this->HandleOutbound(std::move(m));
-                    }) {}
+      : strand_(exec),
+        num_channels_(num_channels),
+        channel_cfg_(cfg),
+        // Inbound: pass Msg into HandleProcessing
+        inbound_manager_(cfg,
+                         [this](Msg m) {
+                           this->HandleProcessing(std::move(m));
+                         }),
+        // Outbound: pass Msg into HandleOutbound
+        outbound_manager_(cfg, [this](Msg m) {
+          this->HandleOutbound(std::move(m));
+        }) {}
 
   // Register a new session and assign it a channel
   void RegisterSession(uint64_t id, SessionPtr session) {
-    size_t ch = id % num_channels_;  // default modulo assigner
-    session->meta().channel = ch;    // Session→Channel Assignment
+    size_t ch               = id % num_channels_;  // default modulo assigner
+    session->meta().channel = ch;                  // Session→Channel Assignment
     // TODO: observability: emit OnChannelAssign(id, ch)
     session_manager_.Add(id, session);
     if (callbacks_)

@@ -19,7 +19,7 @@ RawBuffer RawBuffer::Make(std::size_t size, void* (*alloc)(std::size_t),
 /* PUBLIC */
 
 RawBuffer::RawBuffer(void* data, std::size_t size, DeleterFn deleter)
-                : data_(data), size_(size), deleter_(deleter) {
+    : data_(data), size_(size), deleter_(deleter) {
   if (!data_ || size_ == 0 || !deleter_) {
     throw std::invalid_argument("RawBuffer: invalid construction arguments.");
   }
@@ -56,19 +56,19 @@ void RawBuffer::Reset() {
   if (data_ && deleter_) {
     deleter_(data_, size_);
   }
-  data_ = nullptr;
-  size_ = 0;
+  data_    = nullptr;
+  size_    = 0;
   deleter_ = nullptr;
 }
 
 /*PRIVATE*/
 
 void RawBuffer::MoveFrom(RawBuffer&& other) noexcept {
-  data_ = other.data_;
-  size_ = other.size_;
-  deleter_ = other.deleter_;
-  other.data_ = nullptr;
-  other.size_ = 0;
+  data_          = other.data_;
+  size_          = other.size_;
+  deleter_       = other.deleter_;
+  other.data_    = nullptr;
+  other.size_    = 0;
   other.deleter_ = nullptr;
 }
 

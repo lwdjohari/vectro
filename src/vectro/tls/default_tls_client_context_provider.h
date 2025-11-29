@@ -1,13 +1,13 @@
 #pragma once
 
-#include <boost/asio/ssl/context.hpp>
+#include <asio/ssl/context.hpp>
 #include <memory>
 
 #include "vectro/tls/tls_client_context_provider.h"
 
 namespace vectro {
 namespace tls {
-namespace asio = boost::asio;
+namespace asio = asio;
 class DefaultTlsClientContextProvider : public TlsClientContextProvider {
  public:
   DefaultTlsClientContextProvider();

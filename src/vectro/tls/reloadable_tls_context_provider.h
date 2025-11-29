@@ -1,7 +1,6 @@
 #pragma once
-
-#include <boost/asio/ssl/context.hpp>
-#include <boost/asio/steady_timer.hpp>
+#include <asio/ssl/context.hpp>
+#include <asio/steady_timer.hpp>
 #include <atomic>
 #include <chrono>
 #include <memory>
@@ -13,7 +12,7 @@
 namespace vectro {
 namespace tls {
 
-namespace asio = boost::asio;
+namespace asio = asio;
 
 class ReloadableTlsContextProvider : public TlsContextProvider {
  public:

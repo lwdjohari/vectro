@@ -5,8 +5,8 @@
 #include <absl/synchronization/mutex.h>
 #include <absl/time/time.h>
 
-#include <boost/asio.hpp>
-#include <boost/asio/ssl.hpp>
+#include <asio.hpp>
+#include <asio/ssl.hpp>
 #include <functional>
 #include <memory>
 
@@ -19,8 +19,8 @@
 namespace vectro {
 namespace tcp {
 
-using boost::asio::ip::tcp;
-namespace asio = boost::asio;
+using asio::ip::tcp;
+namespace asio = asio;
 
 /// Configurable timeouts & limits for TcpClient
 struct ClientConfig {
@@ -41,9 +41,9 @@ using frame::InternalMessageMeta;
 
 /// Callback types
 using MessageHandler = std::function<void(std::shared_ptr<InternalMessage>)>;
-using ConnectHandler = std::function<void(const boost::system::error_code&)>;
-using DisconnectHandler = std::function<void(const boost::system::error_code&)>;
-using ResponseHandler = std::function<void(const boost::system::error_code&,
+using ConnectHandler = std::function<void(const system::error_code&)>;
+using DisconnectHandler = std::function<void(const system::error_code&)>;
+using ResponseHandler = std::function<void(const system::error_code&,
                                            std::shared_ptr<InternalMessage>)>;
 
 template <typename Stream>
@@ -206,7 +206,7 @@ class TcpClient : public std::enable_shared_from_this<TcpClient<Stream>> {
  private:
   void DoHandshake() {
     socket_->async_handshake(
-        boost::asio::ssl::stream_base::client,
+        asio::ssl::stream_base::client,
         asio::bind_executor(executor_,
                             [self = this->shared_from_this()](auto ec) {
                               if (self->on_connect_)
@@ -221,7 +221,7 @@ class TcpClient : public std::enable_shared_from_this<TcpClient<Stream>> {
       return;
     auto& rb = framer_->PrepareRead();
     socket_->async_read_some(
-        boost::asio::buffer(rb.data(), rb.size()),
+        asio::buffer(rb.data(), rb.size()),
         asio::bind_executor(executor_, [self = this->shared_from_this()](
                                            auto ec, std::size_t n) {
           if (ec) {

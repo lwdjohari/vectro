@@ -49,18 +49,18 @@ class LogAdapter {
   using Callback = std::function<void(const LogMessage&)>;
 
   explicit LogAdapter(const std::string& id)
-                  : logger_id_(id),
-                    running_(true),
-                    stopped_(false),
-                    max_queue_size_(10000),
-                    backpressure_threshold_(5000),
-                    backoff_duration_ms_(10),
-                    jitter_fraction_(0.1),
-                    drop_notification_interval_ms_(1000),
-                    shutdown_timeout_ms_(5000),
-                    dropped_messages_(0),
-                    high_water_mark_(0),
-                    last_drop_notification_(absl::Now()) {
+      : logger_id_(id),
+        running_(true),
+        stopped_(false),
+        max_queue_size_(10000),
+        backpressure_threshold_(5000),
+        backoff_duration_ms_(10),
+        jitter_fraction_(0.1),
+        drop_notification_interval_ms_(1000),
+        shutdown_timeout_ms_(5000),
+        dropped_messages_(0),
+        high_water_mark_(0),
+        last_drop_notification_(absl::Now()) {
     worker_ = std::make_unique<std::thread>(&LogAdapter::ProcessLoop, this);
   }
 
@@ -87,10 +87,10 @@ class LogAdapter {
     }
   }
 
-  LogAdapter(const LogAdapter&) = delete;
+  LogAdapter(const LogAdapter&)            = delete;
   LogAdapter& operator=(const LogAdapter&) = delete;
-  LogAdapter(LogAdapter&&) = default;
-  LogAdapter& operator=(LogAdapter&&) = default;
+  LogAdapter(LogAdapter&&)                 = default;
+  LogAdapter& operator=(LogAdapter&&)      = default;
 
   // Configuration setters
   void SetMaxQueueSize(size_t max) {
@@ -166,8 +166,8 @@ class LogAdapter {
       // Backpressure: sleep with jitter if above threshold
       size_t thr = backpressure_threshold_.load(std::memory_order_relaxed);
       if (sz >= thr) {
-        int64_t base = backoff_duration_ms_.load(std::memory_order_relaxed);
-        double frac = jitter_fraction_.load(std::memory_order_relaxed);
+        int64_t base   = backoff_duration_ms_.load(std::memory_order_relaxed);
+        double frac    = jitter_fraction_.load(std::memory_order_relaxed);
         int64_t jitter = static_cast<int64_t>(base * frac);
         thread_local static std::mt19937_64 rng((std::random_device())());
         std::uniform_int_distribution<int64_t> dist(-jitter, jitter);
@@ -184,7 +184,7 @@ class LogAdapter {
         }
         queue_.emplace_back(std::move(lm));
         // Update high-water mark
-        size_t hwm = queue_.size();
+        size_t hwm  = queue_.size();
         size_t prev = high_water_mark_.load(std::memory_order_relaxed);
         while (hwm > prev && !high_water_mark_.compare_exchange_weak(
                                  prev, hwm, std::memory_order_relaxed)) {
@@ -284,10 +284,10 @@ class LogAdapter {
   // Default synchronous write; includes logger_id
   void DefaultLog(const LogMessage& lm) {
     try {
-      std::string ts = absl::FormatTime(absl::RFC3339_full, lm.timestamp,
-                                        absl::LocalTimeZone());
+      std::string ts  = absl::FormatTime(absl::RFC3339_full, lm.timestamp,
+                                         absl::LocalTimeZone());
       const char* lvl = ToString(lm.level);
-      auto tid = std::hash<std::thread::id>()(lm.thread_id);
+      auto tid        = std::hash<std::thread::id>()(lm.thread_id);
       std::string out =
           absl::StrFormat("[%s] [%s] [%s] [t%llu] %s\n", ts, lm.logger_id, lvl,
                           static_cast<unsigned long long>(tid), lm.message);
@@ -330,7 +330,7 @@ class LogAdapter {
 // ========== Singleton and Convenience Macros ==========
 
 // Default process-wide singleton logger
-inline LogAdapter<> &DefaultLogAdapter() {
+inline LogAdapter<>& DefaultLogAdapter() {
   static LogAdapter<> instance("DefaultLogAdapter");
   return instance;
 }
