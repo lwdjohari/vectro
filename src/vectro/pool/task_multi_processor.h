@@ -82,6 +82,7 @@ class TaskMultiProcessor {
       : cfg_(cfg),
         running_(true),
         stopped_(false),
+        active_workers_(cfg.num_threads),
         tasks_in_queue_(0),
         dropped_count_(0),
         high_water_mark_(0),
@@ -89,7 +90,6 @@ class TaskMultiProcessor {
         stolen_count_(0),
         rr_index_(0),
         last_drop_notification_(Now()),
-        active_workers_(cfg.num_threads),
         steal_policy_(cfg.steal_policy ? cfg.steal_policy
                                        : DefaultStealPolicy) {
     queues_.resize(cfg.num_threads);

@@ -154,6 +154,7 @@ TEST_CASE("Backpressure does not drop tasks", "[TaskMultiProcessor]") {
   TaskMultiProcessor<int> qp(cfg);
   std::atomic<int> count{0};
   qp.RegisterCallback([&](int x) {
+    (void)x;
     count++;
   });
 
