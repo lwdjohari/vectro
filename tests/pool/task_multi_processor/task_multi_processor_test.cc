@@ -29,8 +29,8 @@ using namespace std::chrono_literals;
 
 TEST_CASE("Basic FIFO preserves strict order", "[TaskMultiProcessor]") {
   TaskProcessorConfig cfg;
-  cfg.id = "fifo-test";
-  cfg.mode = ScheduleMode::FIFO;
+  cfg.id          = "fifo-test";
+  cfg.mode        = ScheduleMode::FIFO;
   cfg.num_threads = 1;
   TaskMultiProcessor<int> qp(cfg);
 
@@ -41,7 +41,7 @@ TEST_CASE("Basic FIFO preserves strict order", "[TaskMultiProcessor]") {
     output.push_back(x);
   });
 
-  for (int i = 0; i < 5; ++i){
+  for (int i = 0; i < 5; ++i) {
     qp.Submit(i);
   }
   SleepFor(Milliseconds(50));
@@ -54,15 +54,17 @@ TEST_CASE("Basic FIFO preserves strict order", "[TaskMultiProcessor]") {
 
 TEST_CASE("RoundRobin processes all tasks", "[TaskMultiProcessor]") {
   TaskProcessorConfig cfg;
-  cfg.id = "rr-test";
-  cfg.mode = ScheduleMode::RoundRobin;
+  cfg.id          = "rr-test";
+  cfg.mode        = ScheduleMode::RoundRobin;
   cfg.num_threads = 2;
   TaskMultiProcessor<int> qp(cfg);
 
   std::atomic<int> sum{0};
-  qp.RegisterCallback([&](int x) { sum += x; });
+  qp.RegisterCallback([&](int x) {
+    sum += x;
+  });
 
-  for (int i = 1; i <= 4; ++i){
+  for (int i = 1; i <= 4; ++i) {
     qp.Submit(i);
   }
   SleepFor(Milliseconds(50));
@@ -72,11 +74,11 @@ TEST_CASE("RoundRobin processes all tasks", "[TaskMultiProcessor]") {
 
 TEST_CASE("Circuit breaker drops excess tasks", "[TaskMultiProcessor]") {
   TaskProcessorConfig cfg;
-  cfg.id = "cb-test";
-  cfg.mode = ScheduleMode::FIFO;
-  cfg.num_threads = 1;
+  cfg.id                     = "cb-test";
+  cfg.mode                   = ScheduleMode::FIFO;
+  cfg.num_threads            = 1;
   cfg.enable_circuit_breaker = true;
-  cfg.max_queue_size = 2;
+  cfg.max_queue_size         = 2;
 
   TaskMultiProcessor<int> qp(cfg);
   qp.Submit(1);
@@ -102,7 +104,9 @@ TEST_CASE("SubmitWithResult returns correct future result",
   cfg.num_threads = 1;
   TaskMultiProcessor<int> qp(cfg);
 
-  auto fut = qp.SubmitWithResult<int>(7, [](int x) { return x * 3; });
+  auto fut = qp.SubmitWithResult<int>(7, [](int x) {
+    return x * 3;
+  });
   REQUIRE(fut.get() == 21);
 }
 
@@ -112,7 +116,12 @@ TEST_CASE("SubmitWithResult cancellation before enqueue",
   TaskMultiProcessor<int> qp(cfg);
 
   auto token = std::make_shared<std::atomic<bool>>(true);
-  auto fut = qp.SubmitWithResult<int>(5, [](int x) { return x; }, token);
+  auto fut   = qp.SubmitWithResult<int>(
+      5,
+      [](int x) {
+        return x;
+      },
+      token);
   REQUIRE_THROWS_AS(fut.get(), std::runtime_error);
 }
 
@@ -123,7 +132,7 @@ TEST_CASE("SubmitWithResult cancellation before execution",
   TaskMultiProcessor<int> qp(cfg);
 
   auto token = std::make_shared<std::atomic<bool>>(false);
-  auto fut = qp.SubmitWithResult<int>(
+  auto fut   = qp.SubmitWithResult<int>(
       5,
       [&](int x) {
         SleepFor(Milliseconds(50));
@@ -136,15 +145,17 @@ TEST_CASE("SubmitWithResult cancellation before execution",
 
 TEST_CASE("Backpressure does not drop tasks", "[TaskMultiProcessor]") {
   TaskProcessorConfig cfg;
-  cfg.mode = ScheduleMode::FIFO;
-  cfg.num_threads = 1;
-  cfg.enable_backoff = true;
+  cfg.mode                   = ScheduleMode::FIFO;
+  cfg.num_threads            = 1;
+  cfg.enable_backoff         = true;
   cfg.backpressure_threshold = 1;
-  cfg.backoff_duration = Milliseconds(1);
+  cfg.backoff_duration       = Milliseconds(1);
 
   TaskMultiProcessor<int> qp(cfg);
   std::atomic<int> count{0};
-  qp.RegisterCallback([&](int x) { count++; });
+  qp.RegisterCallback([&](int x) {
+    count++;
+  });
 
   qp.Submit(1);
   qp.Submit(2);
@@ -154,7 +165,7 @@ TEST_CASE("Backpressure does not drop tasks", "[TaskMultiProcessor]") {
 
 TEST_CASE("Metrics getters reflect activity", "[TaskMultiProcessor]") {
   TaskProcessorConfig cfg;
-  cfg.mode = ScheduleMode::FIFO;
+  cfg.mode        = ScheduleMode::FIFO;
   cfg.num_threads = 1;
   TaskMultiProcessor<int> qp(cfg);
 
@@ -177,9 +188,13 @@ TEST_CASE("Exception in callbacks are isolated and do not kill worker threads",
 
   std::atomic<int> count{0};
   // First callback throws
-  qp.RegisterCallback([](int) { throw std::runtime_error("oops"); });
+  qp.RegisterCallback([](int) {
+    throw std::runtime_error("oops");
+  });
   // Second callback increments count
-  qp.RegisterCallback([&](int x) { count += x; });
+  qp.RegisterCallback([&](int x) {
+    count += x;
+  });
 
   // Submit tasks
   for (int i = 1; i <= 5; ++i)
